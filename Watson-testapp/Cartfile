@@ -1,0 +1,2 @@
+github "watson-developer-cloud/ios-sdk"
+github "bignerdranch/Freddy" ~> 3.0
