@@ -50,6 +50,7 @@
                     </view>
                     <connections>
                         <outlet property="RequestLabel" destination="mMW-J0-ZFA" id="hv9-3g-RVL"/>
+                        <outlet property="TalkButton" destination="zcc-1b-opz" id="RUD-pc-h0C"/>
                         <outlet property="WatsonReplyLabel" destination="Qlt-ZL-aXD" id="foS-w3-Mdr"/>
                     </connections>
                 </viewController>
