@@ -21,6 +21,7 @@ class ViewController: UIViewController {
     case ttsPass = "2JyNCKVSR5D3"
     case convoUser = "6722c1b3-5a57-4e05-bbbf-666de378d6ce"
     case convoPass = "vlzy8VwxdiIQ"
+    case workSpaceId = "2f836c8f-da69-499d-96aa-47a8518cd9f6"
     
   }
   
@@ -28,13 +29,15 @@ class ViewController: UIViewController {
   @IBOutlet weak var RequestLabel: UILabel!
   @IBOutlet weak var TalkButton: UIButton!
   
-  private var convo: Conversation?
+  private var workspaceID: WorkspaceID!
+  private var convo: Conversation!
+  private var convoContext: Context?
+  private var replyText = ""
   
   private var stt: SpeechToText?
   private var tts: TextToSpeech?
-  private var recorder: AVAudioRecorder?
   private var player: AVAudioPlayer?
-  private var session = AVAudioSession.sharedInstance()
+  //private var session = AVAudioSession.sharedInstance()
   
   @IBAction func ButtonPressed(_ sender: UIButton) {
     TalkButton.isEnabled = false
@@ -46,11 +49,11 @@ class ViewController: UIViewController {
     instantiateSTT()
     instantiateTTS()
     instantiateConversation()
-    /*
-    let documents = NSSearchPathForDirectoriesInDomains(.documentDirectory, .userDomainMask, true)[0]
-    let filename = "STTRecording.wav"
-    let filepath = NSURL(fileURLWithPath: documents + "/" + filename)
- */
+    
+  }
+  
+  override func viewWillAppear(_ animated: Bool) {
+    startConversation()
   }
   
   private func instantiateSTT() {
@@ -62,6 +65,8 @@ class ViewController: UIViewController {
   }
   
   private func instantiateConversation() {
+    workspaceID = WorkspaceID(Credentials.workSpaceId.rawValue)
+    convoContext = nil
     convo = Conversation(username: Credentials.convoUser.rawValue, password: Credentials.convoPass.rawValue, version: "2016-12-25")
   }
   
@@ -77,19 +82,48 @@ class ViewController: UIViewController {
     stt.recognizeMicrophone(settings: settings, failure: failure) { results in
       let transcript = results.bestTranscript
       self.RequestLabel.text = transcript
-      self.WatsonReplyLabel.text = transcript
-      self.replyToRequest(text: results.bestTranscript)
+      stt.stopRecognizeMicrophone()
+      self.replyToRequest(text: transcript)
+      
       
     }
   }
   
+  private func startConversation() {
+    
+    // Call conversation service for Watson to initiate conversation.
+    convo.message(withWorkspace: workspaceID) { response in
+      DispatchQueue.main.async {
+        self.handle(response: response)
+      }
+    }
+    
+    
+  }
+  
   private func replyToRequest(text: String) {
-    //conversation model
-    synthesizeText(text: text)
+    let messageReq = MessageRequest(text: text, context: convoContext)
+    self.convo.message(withWorkspace: workspaceID, request: messageReq) { response in
+      DispatchQueue.main.async {
+        self.handle(response: response)
+      }
+      
+    }
+    
     self.TalkButton.isEnabled = true
   }
   
-  func synthesizeText(text: String) {
+  private func handle(response: MessageResponse) {
+    // Display the Watson's greeting response.
+    let text = response.output.text[0]
+    WatsonReplyLabel.text = text
+    synthesizeText(text: text)
+    
+    // Save the conversation context
+    self.convoContext = response.context
+  }
+  
+  private func synthesizeText(text: String) {
     guard let tts = tts else {
       print ("no text to speech service")
       return
@@ -110,4 +144,3 @@ class ViewController: UIViewController {
   }
   
 }
-
